@@ -24,7 +24,7 @@
         name:
           - docker.io
           - python3-pip
-          - pywinrm
+          - python3-winrm
         state: present
         update_cache: yes
 
