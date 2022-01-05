@@ -22,7 +22,6 @@
     - name: Install packages
       ansible.builtin.apt:
         name:
-          - docker.io
           - python3-pip
           - pywinrm
         state: present
