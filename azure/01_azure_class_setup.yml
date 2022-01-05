@@ -1,6 +1,7 @@
 ---
 - hosts: tag_type_devops
   become: yes
+  become_method: sudo
   vars_prompt:
     - name: account
       prompt: DevOps Account
@@ -22,6 +23,7 @@
     - name: Install packages
       ansible.builtin.apt:
         name:
+          - docker.io
           - python3-pip
           - pywinrm
         state: present
