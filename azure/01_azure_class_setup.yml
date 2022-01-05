@@ -26,7 +26,7 @@
           - python3-winrm
         state: present
         update_cache: yes
-        become: yes
+      become: yes
 
     - name: Download azure requirements
       ansible.builtin.get_url:
