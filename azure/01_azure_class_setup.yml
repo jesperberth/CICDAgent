@@ -1,7 +1,7 @@
 ---
 - hosts: tag_type_devops
   become: yes
-  become_method: sudo
+  become_method: su
   vars_prompt:
     - name: account
       prompt: DevOps Account
