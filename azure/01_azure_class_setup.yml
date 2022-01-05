@@ -1,6 +1,5 @@
 ---
 - hosts: tag_type_devops
-  become: yes
   vars_prompt:
     - name: account
       prompt: DevOps Account
@@ -27,6 +26,7 @@
           - python3-winrm
         state: present
         update_cache: yes
+        become: yes
 
     - name: Download azure requirements
       ansible.builtin.get_url:
