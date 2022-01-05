@@ -41,6 +41,7 @@
       ansible.builtin.user:
         name: "{{ user }}"
         group: docker
+      become: true
 
     - name: Create Folder .azure
       ansible.builtin.file:
