@@ -36,8 +36,6 @@
     - name: Install pip requirements azure
       ansible.builtin.pip:
         requirements: ~/requirements-azure.txt
-      become: yes
-      become_user: "{{ user }}"
 
     - name: Allow User to run docker
       ansible.builtin.user:
@@ -48,58 +46,38 @@
       ansible.builtin.file:
         path: ~/.azure
         state: directory
-      become: yes
-      become_user: "{{ user }}"
 
     - name: Create Folder DevOpsAgent
       ansible.builtin.file:
         path: ~/DevOpsAgent
         state: directory
-      become: yes
-      become_user: "{{ user }}"
 
     - name: Download vsts-agent
       ansible.builtin.get_url:
         url: https://vstsagentpackage.azureedge.net/agent/2.190.0/vsts-agent-linux-x64-2.190.0.tar.gz
         dest: ~/DevOpsAgent/vsts-agent-linux-x64-2.190.0.tar.gz
-      become: yes
-      become_user: "{{ user }}"
 
     - name: Extract DevOpsAgent
       ansible.builtin.unarchive:
         src: ~/DevOpsAgent/vsts-agent-linux-x64-2.190.0.tar.gz
         dest: ~/DevOpsAgent
-      become: yes
-      become_user: "{{ user }}"
 
     - name: Check if agent is installed
       stat:
         path: ~/DevOpsAgent/svc.sh
       register: svcfile
-      become: yes
-      become_user: "{{ user }}"
 
     - name: Configure DevOpsAgent
       shell: |
         /home/{{ user }}/DevOpsAgent/config.sh --unattended --url https://dev.azure.com/{{ account }} --auth pat --token {{ token }} --pool {{ pool }}  --acceptTeeEula
-      become: yes
-      become_user: "{{ user }}"
       when: not svcfile.stat.exists
 
     - name: Check if agent service is installed
       stat:
         path: /etc/systemd/system/vsts.agent.{{ account }}.{{ pool }}.devops1.service
       register: servicefile
-      become: yes
-      become_user: "{{ user }}"
 
     - name: Configure DevOpsAgent as a Service
       shell: |
         cd /home/{{ user }}/DevOpsAgent
         ./svc.sh install
-      become: yes
-      when: not servicefile.stat.exists
-# ./config.sh --unattended --url https://myaccount.visualstudio.com --auth pat --token myToken --pool default  --acceptTeeEula
-
-# sudo pip install ansible[azure]
-#
