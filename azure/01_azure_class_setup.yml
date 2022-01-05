@@ -32,8 +32,6 @@
       ansible.builtin.get_url:
         url: https://raw.githubusercontent.com/ansible-collections/azure/dev/requirements-azure.txt
         dest: ~/requirements-azure.txt
-      become: yes
-      become_user: "{{ user }}"
 
     - name: Install pip requirements azure
       ansible.builtin.pip:
