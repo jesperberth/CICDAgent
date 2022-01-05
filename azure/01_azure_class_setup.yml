@@ -26,6 +26,8 @@
           - python3-pip
           - pywinrm
         state: present
+      become: yes
+      become_user: "{{ user }}"
 
     - name: Download azure requirements
       ansible.builtin.get_url:
