@@ -1,0 +1,133 @@
+---
+- hosts: localhost
+  connection: local
+
+  vars_prompt:
+    - name: adminUser
+      prompt: Username
+      private: no
+
+  vars:
+    location: northeurope
+    virtualnetwork: DevOpsNetwork
+    subnet: Agents
+    tag_owner: arrow
+    tag_project: DevOpsAgent
+    ssh_public_key: "{{lookup('file', '~/.ssh/id_rsa.pub') }}"
+    az_rg: "devops-{{ adminUser }}"
+
+  tasks:
+    - name: Azure Virtual Network
+      include_role:
+        name: jesperberth.az_virtualnetwork
+      vars:
+        resourcegroup: "{{ az_rg }}"
+        virtualnetwork_name: "{{ virtualnetwork }}"
+        cidr: 10.1.0.0/16
+        subnet_name: "{{ subnet }}"
+        subnet_cidr: 10.1.0.0/24
+        owner: "{{ tag_owner }}"
+        project: "{{ tag_project }}"
+
+    - name: Azure Network Security Group
+      include_role:
+        name: jesperberth.az_securitygroup
+      vars:
+        resourcegroup: "{{ az_rg }}"
+        networksecuritygroup_name: "{{ item.networksecuritygroup_name }}"
+        rulename: "{{ item.rulename }}"
+        ruleprotocol: "{{ item.ruleprotocol }}"
+        rulesourceaddress: "{{ item.rulesourceaddress }}"
+        ruledestinationportrange: "{{ item.ruledestinationportrange }}"
+        ruleaccess: "{{ item.ruleaccess }}"
+        rulepriority: "{{ item.rulepriority }}"
+        ruledirection: "{{ item.ruledirection }}"
+        owner: "{{ tag_owner }}"
+        project: "{{ tag_project }}"
+      loop:
+        - {
+            networksecuritygroup_name: "SG_Network",
+            rulename: "AllowSSH",
+            ruleprotocol: "Tcp",
+            rulesourceaddress: "0.0.0.0/0",
+            ruledestinationportrange: "22",
+            ruleaccess: "Allow",
+            rulepriority: "102",
+            ruledirection: "Inbound",
+          }
+
+    - name: Create network interfaces
+      azure_rm_networkinterface:
+        name: "{{ item }}_nic01"
+        resource_group: "{{ az_rg }}"
+        virtual_network: "{{ virtualnetwork }}"
+        subnet_name: "{{ subnet }}"
+        security_group: "SG_Network"
+        ip_configurations:
+          - name: "{{ item }}_nic01_ipconfig"
+            public_ip_address_name: "{{ item }}_public_ip"
+            primary: True
+        tags:
+          owner: "{{ tag_owner }}"
+          project: "{{ tag_project }}"
+      loop:
+        - devops1
+      async: 1000
+      poll: 0
+      register: create_nic
+
+    - name: Wait for Network Interfaces
+      async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 30
+      delay: 5
+      with_items: "{{ create_nic.results }}"
+
+    # Create Virtual Machines
+    - name: Create Virtual Machines
+      azure_rm_virtualmachine:
+        resource_group: "{{ az_rg }}"
+        name: "{{ item.name }}"
+        os_type: "{{ item.os_type }}"
+        admin_username: "{{ adminUser }}"
+        ssh_password_enabled: false
+        ssh_public_keys:
+          - path: "/home/{{ adminUser }}/.ssh/authorized_keys"
+            key_data: "{{ ssh_public_key }}"
+        managed_disk_type: Standard_LRS
+        state: present
+        image:
+          offer: "{{ item.offer }}"
+          publisher: "{{ item.publisher }}"
+          sku: "{{ item.sku }}"
+          version: "{{ item.version }}"
+        vm_size: "{{ item.size }}"
+        network_interfaces: "{{ item.name }}_nic01"
+        tags:
+          owner: "{{ adminUser }}"
+          type: "{{ item.type }}"
+      loop:
+        - {
+            "name": "devops1",
+            "size": "Standard_DS2_v2",
+            "os_type": "Linux",
+            "offer": "0001-com-ubuntu-server-focal",
+            "publisher": "Canonical",
+            "sku": "20_04-lts-gen2",
+            "version": "latest",
+            "type": "devops",
+          }
+      async: 1000
+      poll: 0
+      register: create_vm
+
+    - name: Wait for Virtual Machines
+      async_status:
+        jid: "{{ item.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 100
+      delay: 5
+      with_items: "{{ create_vm.results }}"
