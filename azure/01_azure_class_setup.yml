@@ -48,7 +48,6 @@
         - name: Configure DevOpsAgent
           shell: |
             /home/{{ user }}/DevOpsAgent/config.sh --unattended --url https://dev.azure.com/{{ account }} --auth pat --token {{ token }} --pool {{ pool }}  --acceptTeeEula
-          become: yes
           when: not svcfile.stat.exists
 
         - name: Check if agent service is installed
@@ -60,6 +59,7 @@
           shell: |
             cd /home/{{ user }}/DevOpsAgent
             ./svc.sh install
+          become: yes
       when: setup_devops == true
 
     - name: Install and Configure Ansible
