@@ -66,6 +66,7 @@
           ansible.builtin.systemd:
             name: vsts.agent.{{ account }}.{{ pool }}.{{ ansible_hostname }}.service
             state: started
+          become: yes
       when: setup_devops == true
 
     - name: Install and Configure Ansible
