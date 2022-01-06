@@ -38,6 +38,7 @@
           ansible.builtin.unarchive:
             src: ~/DevOpsAgent/vsts-agent-linux-x64-2.190.0.tar.gz
             dest: ~/DevOpsAgent
+            remote_src: yes
 
         - name: Check if agent is installed
           stat:
