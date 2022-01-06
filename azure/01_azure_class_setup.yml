@@ -17,6 +17,7 @@
     ansible_python_interpreter: "auto"
     user: "{{ ansible_user_id }}"
     setup_devops: true
+    setup_standard: true
     setup_docker: false
     setup_ansible: false
     setup_azure: false
@@ -68,6 +69,18 @@
             state: started
           become: yes
       when: setup_devops == true
+
+    - name: Install and Configure Standard packages
+      block:
+        - name: Install packages
+          ansible.builtin.apt:
+            name:
+              - zip
+              - unzip
+            state: present
+            update_cache: yes
+          become: yes
+      when: setup_standard == true
 
     - name: Install and Configure Ansible
       block:
