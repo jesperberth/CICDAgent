@@ -15,70 +15,93 @@
 
   vars:
     ansible_python_interpreter: "auto"
-    user: "{{ lookup('env', 'USER') }}"
+    user: "{{ ansible_user_id }}"
+    setup_devops: true
+    setup_docker: false
+    setup_ansible: false
+    setup_azure: false
 
   tasks:
-    - name: Install packages
-      ansible.builtin.apt:
-        name:
-          - docker.io
-          - python3-pip
-          - python3-winrm
-        state: present
-        update_cache: yes
-      become: yes
+    - name: Install and Configure Azure DevOps Agent
+      block:
+        - name: Create Folder DevOpsAgent
+          ansible.builtin.file:
+            path: ~/DevOpsAgent
+            state: directory
 
-    - name: Download azure requirements
-      ansible.builtin.get_url:
-        url: https://raw.githubusercontent.com/ansible-collections/azure/dev/requirements-azure.txt
-        dest: ~/requirements-azure.txt
+        - name: Download vsts-agent
+          ansible.builtin.get_url:
+            url: https://vstsagentpackage.azureedge.net/agent/2.190.0/vsts-agent-linux-x64-2.190.0.tar.gz
+            dest: ~/DevOpsAgent/vsts-agent-linux-x64-2.190.0.tar.gz
 
-    - name: Install pip requirements azure
-      ansible.builtin.pip:
-        requirements: ~/requirements-azure.txt
+        - name: Extract DevOpsAgent
+          ansible.builtin.unarchive:
+            src: ~/DevOpsAgent/vsts-agent-linux-x64-2.190.0.tar.gz
+            dest: ~/DevOpsAgent
 
-    - name: Allow User to run docker
-      ansible.builtin.user:
-        name: "{{ user }}"
-        group: docker
-      become: true
+        - name: Check if agent is installed
+          stat:
+            path: ~/DevOpsAgent/svc.sh
+          register: svcfile
 
-    - name: Create Folder .azure
-      ansible.builtin.file:
-        path: ~/.azure
-        state: directory
+        - name: Configure DevOpsAgent
+          shell: |
+            /home/{{ user }}/DevOpsAgent/config.sh --unattended --url https://dev.azure.com/{{ account }} --auth pat --token {{ token }} --pool {{ pool }}  --acceptTeeEula
+          when: not svcfile.stat.exists
 
-    - name: Create Folder DevOpsAgent
-      ansible.builtin.file:
-        path: ~/DevOpsAgent
-        state: directory
+        - name: Check if agent service is installed
+          stat:
+            path: /etc/systemd/system/vsts.agent.{{ account }}.{{ pool }}.devops1.service
+          register: servicefile
 
-    - name: Download vsts-agent
-      ansible.builtin.get_url:
-        url: https://vstsagentpackage.azureedge.net/agent/2.190.0/vsts-agent-linux-x64-2.190.0.tar.gz
-        dest: ~/DevOpsAgent/vsts-agent-linux-x64-2.190.0.tar.gz
+        - name: Configure DevOpsAgent as a Service
+          shell: |
+            cd /home/{{ user }}/DevOpsAgent
+            ./svc.sh install
+      when: setup_devops == true
 
-    - name: Extract DevOpsAgent
-      ansible.builtin.unarchive:
-        src: ~/DevOpsAgent/vsts-agent-linux-x64-2.190.0.tar.gz
-        dest: ~/DevOpsAgent
+    - name: Install and Configure Ansible
+      block:
+        - name: Install packages
+          ansible.builtin.apt:
+            name:
+              - python3-pip
+              - python3-winrm
+            state: present
+            update_cache: yes
+          become: yes
 
-    - name: Check if agent is installed
-      stat:
-        path: ~/DevOpsAgent/svc.sh
-      register: svcfile
+        - name: Download azure requirements
+          ansible.builtin.get_url:
+            url: https://raw.githubusercontent.com/ansible-collections/azure/dev/requirements-azure.txt
+            dest: ~/requirements-azure.txt
 
-    - name: Configure DevOpsAgent
-      shell: |
-        /home/{{ user }}/DevOpsAgent/config.sh --unattended --url https://dev.azure.com/{{ account }} --auth pat --token {{ token }} --pool {{ pool }}  --acceptTeeEula
-      when: not svcfile.stat.exists
+        - name: Install pip requirements azure
+          ansible.builtin.pip:
+            requirements: ~/requirements-azure.txt
+      when: setup_ansible == true
 
-    - name: Check if agent service is installed
-      stat:
-        path: /etc/systemd/system/vsts.agent.{{ account }}.{{ pool }}.devops1.service
-      register: servicefile
+    - name: Install and Configure Docker
+      block:
+        - name: Install packages
+          ansible.builtin.apt:
+            name:
+              - docker.io
+            state: present
+            update_cache: yes
+          become: yes
 
-    - name: Configure DevOpsAgent as a Service
-      shell: |
-        cd /home/{{ user }}/DevOpsAgent
-        ./svc.sh install
+        - name: Allow User to run docker
+          ansible.builtin.user:
+            name: "{{ user }}"
+            group: docker
+          become: true
+      when: setup_docker == true
+
+    - name: Install and Configure Azure
+      block:
+        - name: Create Folder .azure
+          ansible.builtin.file:
+            path: ~/.azure
+            state: directory
+      when: setup_azure == true
