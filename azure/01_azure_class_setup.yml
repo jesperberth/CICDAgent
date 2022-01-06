@@ -48,6 +48,7 @@
         - name: Configure DevOpsAgent
           shell: |
             /home/{{ user }}/DevOpsAgent/config.sh --unattended --url https://dev.azure.com/{{ account }} --auth pat --token {{ token }} --pool {{ pool }}  --acceptTeeEula
+          become: yes
           when: not svcfile.stat.exists
 
         - name: Check if agent service is installed
