@@ -149,13 +149,13 @@
             src: credentials.j2
             dest: ~/.azure/credentials
 
-        - name: Install packages for azure-cli
-          ansible.builtin.apt:
-            name:
-              - azure-cli
-            state: present
-            update_cache: yes
-          become: yes
+#        - name: Install packages for azure-cli
+#          ansible.builtin.apt:
+#            name:
+#              - azure-cli
+#            state: present
+#            update_cache: yes
+#          become: yes
       when: setup_azure == true
 
     - name: Restart DevOpsAgent
