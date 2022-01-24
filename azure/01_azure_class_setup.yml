@@ -13,6 +13,22 @@
       prompt: Agent Pool
       private: no
 
+    - name: azuresubid
+      prompt: Azure Subscription ID
+      private: no
+
+    - name: azureclientid
+      prompt: Azure Client ID
+      private: no
+
+    - name: azuresecret
+      prompt: Azure Client Secret
+      private: no
+
+    - name: azuretenant
+      prompt: Azure Tenant ID
+      private: no
+
   vars:
     ansible_python_interpreter: "auto"
     user: "{{ ansible_user_id }}"
@@ -97,6 +113,11 @@
           ansible.builtin.pip:
             name: ansible
           become: yes
+
+        - name: Install Azure requirements for Ansible
+          ansible.builtin.pip:
+          requirements: "/usr/local/lib/python3.8/dist-packages/ansible_collections/azure/azcollection/requirements-azure.txt"
+          become: yes
       when: setup_ansible == true
 
     - name: Install and Configure Docker
@@ -122,6 +143,11 @@
           ansible.builtin.file:
             path: ~/.azure
             state: directory
+
+        - name: Add Credential file for Azure
+          ansible.builtin.template:
+            src: credentials.j2
+            dest: ~/.azure/credentials
       when: setup_azure == true
 
     - name: Restart DevOpsAgent
