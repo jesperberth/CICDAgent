@@ -112,12 +112,10 @@
         - name: Install ansible
           ansible.builtin.pip:
             name: ansible
-          #become: yes
 
         - name: Install Azure requirements for Ansible
           ansible.builtin.pip:
             requirements: "/usr/local/lib/python3.8/dist-packages/ansible_collections/azure/azcollection/requirements-azure.txt"
-          #become: yes
       when: setup_ansible == true
 
     - name: Install and Configure Docker
