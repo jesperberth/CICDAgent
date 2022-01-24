@@ -18,9 +18,9 @@
     user: "{{ ansible_user_id }}"
     setup_devops: true
     setup_standard: true
-    setup_docker: false
-    setup_ansible: false
-    setup_azure: false
+    setup_docker: true
+    setup_ansible: true
+    setup_azure: true
 
   tasks:
     - name: Install and Configure Azure DevOps Agent
@@ -93,14 +93,9 @@
             update_cache: yes
           become: yes
 
-        - name: Download azure requirements
-          ansible.builtin.get_url:
-            url: https://raw.githubusercontent.com/ansible-collections/azure/dev/requirements-azure.txt
-            dest: ~/requirements-azure.txt
-
-        - name: Install pip requirements azure
+        - name: Install ansible
           ansible.builtin.pip:
-            requirements: ~/requirements-azure.txt
+            name: ansible
       when: setup_ansible == true
 
     - name: Install and Configure Docker
@@ -117,7 +112,7 @@
           ansible.builtin.user:
             name: "{{ user }}"
             group: docker
-          become: true
+          become: yes
       when: setup_docker == true
 
     - name: Install and Configure Azure
@@ -127,3 +122,6 @@
             path: ~/.azure
             state: directory
       when: setup_azure == true
+
+    - name: Restart DevOpsAgent
+      ansible.builtin.reboot:
