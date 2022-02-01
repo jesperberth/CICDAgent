@@ -90,7 +90,7 @@
 
         - name: Install Azure requirements for Ansible
           ansible.builtin.pip:
-            requirements: "~/.local/lib/python3.8/site-packages/ansible_collections/azure/azcollection/requirements-azure.txt"
+            requirements: "/usr/local/lib/python3.8/dist-packages/ansible_collections/azure/azcollection/requirements-azure.txt"
           become: yes
       when: setup_ansible == true
 
