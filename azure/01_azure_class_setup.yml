@@ -89,7 +89,7 @@
 
         - name: Install Azure requirements for Ansible
           ansible.builtin.pip:
-            requirements: "/usr/local/lib/python3.8/dist-packages/ansible_collections/azure/azcollection/requirements-azure.txt"
+            requirements: ".local/lib/python3.8/site-packages/ansible_collections/azure/azcollection/requirements-azure.txt"
       when: setup_ansible == true
 
     - name: Install and Configure Docker
