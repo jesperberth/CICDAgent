@@ -1,34 +1,5 @@
 ---
 - hosts: tag_type_devops
-  vars_prompt:
-    - name: account
-      prompt: DevOps Account
-      private: no
-
-    - name: token
-      prompt: Access Token
-      private: no
-
-    - name: pool
-      prompt: Agent Pool
-      private: no
-
-    - name: azuresubid
-      prompt: Azure Subscription ID
-      private: no
-
-    - name: azureclientid
-      prompt: Azure Client ID
-      private: no
-
-    - name: azuresecret
-      prompt: Azure Client Secret
-      private: no
-
-    - name: azuretenant
-      prompt: Azure Tenant ID
-      private: no
-
   vars:
     ansible_python_interpreter: "auto"
     user: "{{ ansible_user_id }}"
@@ -37,6 +8,9 @@
     setup_docker: true
     setup_ansible: true
     setup_azure: true
+
+  vars_files:
+    - ../../devopsagent_info.yml
 
   tasks:
     - name: Install and Configure Azure DevOps Agent
