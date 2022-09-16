@@ -64,6 +64,15 @@
   - name: set azuretenant fact
     set_fact: azuretenant="{{ azuretenantSecret['secrets'][0]['secret'] }}"
 
+  - name: Get secret server public key
+    azure_rm_keyvaultsecret_info:
+      vault_uri: "{{ keyvaulturi }}"
+      name: server-key-pub
+    register: serverpublickeySecret
+
+  - name: set serverpublickey fact
+    set_fact: serverpublickey="{{ serverpublickeySecret['secrets'][0]['secret'] }}"
+
 - hosts: tag_environment_githubrunner
 
   vars:
@@ -79,6 +88,7 @@
       repo: GitOpsDemo
 
   tasks:
+
     - name: Install and Configure Azure DevOps Agent
       block:
         - name: Create Folder DevOpsAgent
@@ -210,6 +220,19 @@
             state: present
             update_cache: yes
           become: yes
+
+        - name: Set public key facts
+          ansible.builtin.set_fact:
+            serverpublickey: "{{hostvars['localhost']['serverpublickey']}}"
+
+        - name: Create server-key public
+          ansible.builtin.lineinfile:
+            path: ~/.ssh/server-key.pub
+            search_string: "{{ serverpublickey }}"
+            line: "{{ serverpublickey }}"
+            mode: '0644'
+            create: yes
+
       when: setup_standard == true
 
     - name: Install and Configure Ansible
@@ -270,13 +293,17 @@
             src: credentials.j2
             dest: ~/.azure/credentials
 
+        - name: Check if az cli is installed
+          stat:
+            path: /usr/bin/az
+          register: azfile
+
         - name: Install packages for azure-cli
-          ansible.builtin.apt:
-            name:
-              - azure-cli
-            state: present
-            update_cache: yes
+          ansible.builtin.shell: |
+            curl -sL https://aka.ms/InstallAzureCLIDeb | bash
           become: yes
+          when: not azfile.stat.exists
+
       when: setup_azure == true
 
     - name: Restart DevOpsAgent
