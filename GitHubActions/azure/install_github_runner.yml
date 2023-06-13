@@ -1,167 +1,188 @@
 ---
-- hosts: localhost
-  connection: local
-  collections:
-    - azure.azcollection
+- name: Deploy GitHub Runner or Azure DevOpsAgent
+  hosts: tag_environment_githubrunner
 
   vars:
     resource_group: KeyVault
     vault_name: jesbedeployment
+    ansible_python_interpreter: "auto"
+    user: "{{ ansible_user_id }}"
+    setup_devops: false
+    setup_github: true
+    setup_standard: true
+    setup_docker: false
+    setup_ansible: false
+    setup_azure: false
+    githubaccount: jesperberth
+    repo: GitOpsDemo
 
   tasks:
+    - name: Get Key Vault by name
+      azure.azcollection.azure_rm_keyvault_info:
+        resource_group: "{{ resource_group }}"
+        name: "{{ vault_name }}"
+      register: keyvault
+      delegate_to: localhost
 
-  - name: Get Key Vault by name
-    azure_rm_keyvault_info:
-      resource_group: "{{ resource_group }}"
-      name: "{{ vault_name }}"
-    register: keyvault
+    - name: Set key vault URI fact
+      ansible.builtin.set_fact:
+        keyvaulturi: "{{ keyvault['keyvaults'][0]['vault_uri'] }}"
+      delegate_to: localhost
 
-  - name: Set key vault URI fact
-    set_fact: keyvaulturi="{{ keyvault['keyvaults'][0]['vault_uri'] }}"
+    - name: Get secret GitHub PAT
+      azure.azcollection.azure_rm_keyvaultsecret_info:
+        vault_uri: "{{ keyvaulturi }}"
+        name: GitHubPAT
+      register: githubpatsecret
+      delegate_to: localhost
 
-  - name: Get secret GitHub PAT
-    azure_rm_keyvaultsecret_info:
-      vault_uri: "{{ keyvaulturi }}"
-      name: GitHubPAT
-    register: GitHubPATSecret
+    - name: Set GitHub PAT fact
+      ansible.builtin.set_fact:
+        gitpatsecret: "{{ githubpatsecret['secrets'][0]['secret'] }}"
+      delegate_to: localhost
 
-  - name: set GitHub PAT fact
-    set_fact: GitPATsecret="{{ GitHubPATSecret['secrets'][0]['secret'] }}"
+    - name: Get secret azureclientid
+      azure.azcollection.azure_rm_keyvaultsecret_info:
+        vault_uri: "{{ keyvaulturi }}"
+        name: azureclientid
+      register: azureclientidsecret
+      delegate_to: localhost
 
-  - name: Get secret azureclientid
-    azure_rm_keyvaultsecret_info:
-      vault_uri: "{{ keyvaulturi }}"
-      name: azureclientid
-    register: azureclientidSecret
+    - name: Set azureclientid fact
+      ansible.builtin.set_fact:
+        azureclientid: "{{ azureclientidsecret['secrets'][0]['secret'] }}"
+      delegate_to: localhost
 
-  - name: set azureclientid fact
-    set_fact: azureclientid="{{ azureclientidSecret['secrets'][0]['secret'] }}"
+    - name: Get secret azuresecret
+      azure.azcollection.azure_rm_keyvaultsecret_info:
+        vault_uri: "{{ keyvaulturi }}"
+        name: azuresecret
+      register: azuresecretsecret
+      delegate_to: localhost
 
-  - name: Get secret azuresecret
-    azure_rm_keyvaultsecret_info:
-      vault_uri: "{{ keyvaulturi }}"
-      name: azuresecret
-    register: azuresecretSecret
+    - name: Set azuresecret fact
+      ansible.builtin.set_fact:
+        azuresecret: "{{ azuresecretsecret['secrets'][0]['secret'] }}"
+      delegate_to: localhost
 
-  - name: set azuresecret fact
-    set_fact: azuresecret="{{ azuresecretSecret['secrets'][0]['secret'] }}"
+    - name: Get secret azuresubid
+      azure.azcollection.azure_rm_keyvaultsecret_info:
+        vault_uri: "{{ keyvaulturi }}"
+        name: azuresubid
+      register: azuresubidsecret
+      delegate_to: localhost
 
-  - name: Get secret azuresubid
-    azure_rm_keyvaultsecret_info:
-      vault_uri: "{{ keyvaulturi }}"
-      name: azuresubid
-    register: azuresubidSecret
+    - name: Set azuresubid fact
+      ansible.builtin.set_fact:
+        azuresubid: "{{ azuresubidsecret['secrets'][0]['secret'] }}"
+      delegate_to: localhost
 
-  - name: set azuresubid fact
-    set_fact: azuresubid="{{ azuresubidSecret['secrets'][0]['secret'] }}"
+    - name: Get secret azuretenant
+      azure.azcollection.azure_rm_keyvaultsecret_info:
+        vault_uri: "{{ keyvaulturi }}"
+        name: azuretenant
+      register: azuretenantsecret
+      delegate_to: localhost
 
-  - name: Get secret azuretenant
-    azure_rm_keyvaultsecret_info:
-      vault_uri: "{{ keyvaulturi }}"
-      name: azuretenant
-    register: azuretenantSecret
+    - name: Set azuretenant fact
+      ansible.builtin.set_fact:
+        azuretenant: "{{ azuretenantsecret['secrets'][0]['secret'] }}"
+      delegate_to: localhost
 
-  - name: set azuretenant fact
-    set_fact: azuretenant="{{ azuretenantSecret['secrets'][0]['secret'] }}"
+    - name: Get secret server public key
+      azure.azcollection.azure_rm_keyvaultsecret_info:
+        vault_uri: "{{ keyvaulturi }}"
+        name: server-key-pub
+      register: serverpublickeysecret
+      delegate_to: localhost
 
-  - name: Get secret server public key
-    azure_rm_keyvaultsecret_info:
-      vault_uri: "{{ keyvaulturi }}"
-      name: server-key-pub
-    register: serverpublickeySecret
+    - name: Set serverpublickey fact
+      ansible.builtin.set_fact:
+        serverpublickey: "{{ serverpublickeysecret['secrets'][0]['secret'] }}"
+      delegate_to: localhost
 
-  - name: set serverpublickey fact
-    set_fact: serverpublickey="{{ serverpublickeySecret['secrets'][0]['secret'] }}"
-
-- hosts: tag_environment_githubrunner
-
-  vars:
-      ansible_python_interpreter: "auto"
-      user: "{{ ansible_user_id }}"
-      setup_devops: false
-      setup_github: true
-      setup_standard: true
-      setup_docker: true
-      setup_ansible: true
-      setup_azure: true
-      githubaccount: jesperberth
-      repo: GitOpsDemo
-
-  tasks:
+# - name: Install
+#  hosts: tag_environment_githubrunner
+#  vars:
+#  tasks:
 
     - name: Install and Configure Azure DevOps Agent
+      when: setup_devops
       block:
         - name: Create Folder DevOpsAgent
           ansible.builtin.file:
             path: ~/DevOpsAgent
             state: directory
+            mode: "0775"
 
         - name: Download vsts-agent
           ansible.builtin.get_url:
             url: https://vstsagentpackage.azureedge.net/agent/2.190.0/vsts-agent-linux-x64-2.190.0.tar.gz
             dest: ~/DevOpsAgent/vsts-agent-linux-x64-2.190.0.tar.gz
+            mode: "0660"
 
         - name: Extract DevOpsAgent
           ansible.builtin.unarchive:
             src: ~/DevOpsAgent/vsts-agent-linux-x64-2.190.0.tar.gz
             dest: ~/DevOpsAgent
-            remote_src: yes
+            remote_src: true
 
         - name: Check if agent is installed
-          stat:
+          ansible.builtin.stat:
             path: ~/DevOpsAgent/svc.sh
           register: svcfile
 
         - name: Configure DevOpsAgent
-          shell: |
-            /home/{{ user }}/DevOpsAgent/config.sh --unattended --url https://dev.azure.com/{{ account }} --auth pat --token {{ token }} --pool {{ pool }}  --acceptTeeEula
+          ansible.builtin.shell: |
+            /home/{{ user }}/DevOpsAgent/config.sh --unattended --url https://dev.azure.com/{{ account }} \
+            --auth pat --token {{ token }} --pool {{ pool }}  --acceptTeeEula
           when: not svcfile.stat.exists
 
         - name: Check if agent service is installed
-          stat:
+          ansible.builtin.stat:
             path: /etc/systemd/system/vsts.agent.{{ account }}.{{ pool }}.{{ ansible_hostname }}.service
           register: servicefile
 
         - name: Configure DevOpsAgent as a Service
-          shell: |
+          ansible.builtin.shell: |
             cd /home/{{ user }}/DevOpsAgent
             ./svc.sh install
-          become: yes
+          become: true
           when: not servicefile.stat.exists
 
         - name: Start vsts agent
           ansible.builtin.systemd:
             name: vsts.agent.{{ account }}.{{ pool }}.{{ ansible_hostname }}.service
             state: started
-          become: yes
-      when: setup_devops == true
+          become: true
 
     - name: Install and Configure GitHub Runner
+      when: setup_github
       block:
         - name: Install Standard packages
           ansible.builtin.apt:
             name:
               - jq
             state: present
-            update_cache: yes
-          become: yes
+            update_cache: true
+          become: true
 
         - name: Check if runner is installed
-          stat:
+          ansible.builtin.stat:
             path: ~/runner/svc.sh
           register: svcfile
 
         - name: Check if runner service is installed
-          stat:
+          ansible.builtin.stat:
             path: /etc/systemd/system/actions.runner.{{ githubaccount }}-{{ repo }}.{{ ansible_hostname }}.service
           register: servicefile
 
-        - name: Set GitPATsecret facts
+        - name: Set gitpatsecret facts
           ansible.builtin.set_fact:
-            GitPATsecret: "{{hostvars['localhost']['GitPATsecret']}}"
+            gitpatsecret: "{{ hostvars['localhost']['gitpatsecret'] }}"
 
         - name: Get GitHub runner url
-          shell: |
+          ansible.builtin.shell: |
             latest_version_label=$(curl -s -X GET 'https://api.github.com/repos/actions/runner/releases/latest' | jq -r '.tag_name')
             latest_version=$(echo $latest_version_label | sed 's/^v//')
             runner_file="actions-runner-linux-x64-${latest_version}.tar.gz"
@@ -173,44 +194,46 @@
           ansible.builtin.get_url:
             url: "{{ runner_url['stdout'] }}"
             dest: ~/runner_install.tar.gz
+            mode: "0744"
 
         - name: Create Folder runner
           ansible.builtin.file:
             path: ~/runner
             state: directory
+            mode: "0755"
 
         - name: Extract runner
           ansible.builtin.unarchive:
             src: ~/runner_install.tar.gz
             dest: ~/runner
-            remote_src: yes
+            remote_src: true
 
         - name: Get runner token
-          shell: |
-            curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: token {{ GitPATsecret }}" https://api.github.com/repos/{{ githubaccount }}/{{ repo }}/actions/runners/registration-token | jq -r '.token'
+          ansible.builtin.shell: |
+            curl -X POST -H "Accept: application/vnd.github+json" -H "Authorization: token {{ gitpatsecret }}" https://api.github.com/repos/{{ githubaccount }}/{{ repo }}/actions/runners/registration-token | jq -r '.token'
           register: runner_token
 
         - name: Configure Runner
-          shell: |
-            ~/runner/config.sh --unattended --url https://github.com/{{ githubaccount }}/{{ repo }} --token {{ runner_token['stdout'] }} --name {{ ansible_hostname }}
+          ansible.builtin.shell: |
+            ~/runner/config.sh --unattended --url https://github.com/{{ githubaccount }}/{{ repo }} --token \
+            {{ runner_token['stdout'] }} --name {{ ansible_hostname }}
           when: not svcfile.stat.exists
 
         - name: Configure runner as a Service
-          shell: |
+          ansible.builtin.shell: |
             cd /home/{{ user }}/runner
             ./svc.sh install {{ user }}
-          become: yes
+          become: true
           when: not servicefile.stat.exists
 
         - name: Start GitHub runner
           ansible.builtin.systemd:
             name: actions.runner.{{ githubaccount }}-{{ repo }}.{{ ansible_hostname }}.service
             state: started
-          become: yes
-
-      when: setup_github == true
+          become: true
 
     - name: Install and Configure Standard packages
+      when: setup_standard
       block:
         - name: Install Standard packages
           ansible.builtin.apt:
@@ -218,12 +241,12 @@
               - zip
               - unzip
             state: present
-            update_cache: yes
-          become: yes
+            update_cache: true
+          become: true
 
         - name: Set public key facts
           ansible.builtin.set_fact:
-            serverpublickey: "{{hostvars['localhost']['serverpublickey']}}"
+            serverpublickey: "{{ hostvars['localhost']['serverpublickey'] }}"
 
         - name: Create server-key public
           ansible.builtin.lineinfile:
@@ -231,11 +254,10 @@
             search_string: "{{ serverpublickey }}"
             line: "{{ serverpublickey }}"
             mode: '0644'
-            create: yes
-
-      when: setup_standard == true
+            create: true
 
     - name: Install and Configure Ansible
+      when: setup_ansible
       block:
         - name: Install packages for Ansible
           ansible.builtin.apt:
@@ -243,69 +265,69 @@
               - python3-pip
               - python3-winrm
             state: present
-            update_cache: yes
-          become: yes
+            update_cache: true
+          become: true
 
         - name: Install ansible
           ansible.builtin.pip:
             name: ansible
-          become: yes
+          become: true
 
         - name: Install Azure requirements for Ansible
           ansible.builtin.pip:
             requirements: "/usr/local/lib/python3.8/dist-packages/ansible_collections/azure/azcollection/requirements-azure.txt"
-          become: yes
-      when: setup_ansible == true
+          become: true
 
     - name: Install and Configure Docker
+      when: setup_docker
       block:
         - name: Install packages for docker
           ansible.builtin.apt:
             name:
               - docker.io
             state: present
-            update_cache: yes
-          become: yes
+            update_cache: true
+          become: true
 
         - name: Allow User to run docker
           ansible.builtin.user:
             name: "{{ user }}"
             group: docker
-          become: yes
-      when: setup_docker == true
+          become: true
 
     - name: Install and Configure Azure
+      when: setup_azure
       block:
         - name: Create Folder .azure
           ansible.builtin.file:
             path: ~/.azure
             state: directory
+            mode: "0600"
 
         - name: Set Credentials facts
           ansible.builtin.set_fact:
-            azureclientid: "{{hostvars['localhost']['azureclientid']}}"
-            azuresecret: "{{hostvars['localhost']['azuresecret']}}"
-            azuresubid: "{{hostvars['localhost']['azuresubid']}}"
-            azuretenant: "{{hostvars['localhost']['azuretenant']}}"
+            azureclientid: "{{ hostvars['localhost']['azureclientid'] }}"
+            azuresecret: "{{ hostvars['localhost']['azuresecret'] }}"
+            azuresubid: "{{ hostvars['localhost']['azuresubid'] }}"
+            azuretenant: "{{ hostvars['localhost']['azuretenant'] }}"
 
         - name: Add Credential file for Azure
           ansible.builtin.template:
             src: credentials.j2
             dest: ~/.azure/credentials
+            mode: "0600"
 
         - name: Check if az cli is installed
-          stat:
+          ansible.builtin.stat:
             path: /usr/bin/az
           register: azfile
 
         - name: Install packages for azure-cli
           ansible.builtin.shell: |
             curl -sL https://aka.ms/InstallAzureCLIDeb | bash
-          become: yes
+          become: true
           when: not azfile.stat.exists
-
-      when: setup_azure == true
 
     - name: Restart DevOpsAgent
       ansible.builtin.reboot:
-      become: yes
+      become: true
