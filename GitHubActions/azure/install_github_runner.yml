@@ -6,7 +6,7 @@
     resource_group: KeyVault
     vault_name: jesbedeployment
     ansible_python_interpreter: "auto"
-    user: "{{ ansible_user_id }}" 
+    user: "{{ ansible_user_id }}"
     setup_devops: false
     setup_github: true
     setup_standard: true
@@ -100,11 +100,6 @@
       ansible.builtin.set_fact:
         serverpublickey: "{{ serverpublickeysecret['secrets'][0]['secret'] }}"
       delegate_to: localhost
-
-# - name: Install
-#  hosts: tag_environment_githubrunner
-#  vars:
-#  tasks:
 
     - name: Install and Configure Azure DevOps Agent
       when: setup_devops
